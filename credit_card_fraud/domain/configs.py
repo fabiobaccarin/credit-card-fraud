@@ -2,11 +2,19 @@
 
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, PositiveInt, StrictBool
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    PositiveFloat,
+    PositiveInt,
+    StrictBool,
+    StrictStr,
+)
 
 from . import types
 
-__ALL__: list[str] = ["PreprocessingConfig"]
+__ALL__: list[str] = ["Config"]
 
 
 class _BaseConfig(BaseModel):
@@ -27,7 +35,7 @@ class _OutlierConfig(_BaseConfig):
     ]
 
 
-class PreprocessingConfig(_BaseConfig):
+class _PreprocessingConfig(_BaseConfig):
     impute_strategy: Annotated[
         types.ImputeStrategy,
         Field(
@@ -47,9 +55,9 @@ class PreprocessingConfig(_BaseConfig):
     outlier: _OutlierConfig
 
 
-class FeatureConfig(_BaseConfig):
+class _FeatureConfig(_BaseConfig):
     max_features: Annotated[
-        PositiveInt, Field(default=5, description="Maximum number of features to select")
+        PositiveInt | None, Field(default=5, description="Maximum number of features to select")
     ]
 
     selection_method: Annotated[
@@ -59,3 +67,38 @@ class FeatureConfig(_BaseConfig):
             description="Which method to use for feature selection",
         ),
     ]
+
+    correlation_threshold: Annotated[
+        PositiveFloat,
+        Field(
+            default=0.75,
+            le=1.0,
+            description="Correlation threshold above which features should be considered redundant",
+        ),
+    ]
+
+
+class _ModelConfig(_BaseConfig):
+    name: Annotated[
+        StrictStr,
+        Field(
+            default=...,
+            min_length=1,
+            description="Model name used for reference (used as run name for MLFlow logging)",
+        ),
+    ]
+
+    model_type: Annotated[
+        types.ModelType, Field(default=types.ModelType.SKLEARN, description="Model type to use")
+    ]
+
+    random_state: Annotated[
+        PositiveInt,
+        Field(default=0, description="Random state to seed randomness and ensure reproducibility"),
+    ]
+
+
+class Config(_BaseConfig):
+    preprocessing: _PreprocessingConfig = Field(default_factory=lambda: _PreprocessingConfig())  # type: ignore
+    features: _FeatureConfig = Field(default_factory=lambda: _FeatureConfig())  # type: ignore
+    model: _ModelConfig = Field(default_factory=lambda: _ModelConfig())  # type: ignore
