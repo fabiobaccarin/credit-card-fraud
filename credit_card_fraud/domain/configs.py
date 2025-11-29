@@ -3,8 +3,6 @@
 from typing import Annotated
 
 from pydantic import (
-    BaseModel,
-    ConfigDict,
     Field,
     PositiveFloat,
     PositiveInt,
@@ -12,16 +10,12 @@ from pydantic import (
     StrictStr,
 )
 
-from . import types
+from . import base, types
 
 __ALL__: list[str] = ["Config"]
 
 
-class _BaseConfig(BaseModel):
-    model_config = ConfigDict(frozen=True, validate_assignment=True, arbitrary_types_allowed=True)
-
-
-class _OutlierConfig(_BaseConfig):
+class _OutlierConfig(base.FrozenModel):
     remove: Annotated[
         StrictBool, Field(default=False, description="Whether to remove outliers from the dataset")
     ]
@@ -35,7 +29,7 @@ class _OutlierConfig(_BaseConfig):
     ]
 
 
-class _PreprocessingConfig(_BaseConfig):
+class _PreprocessingConfig(base.FrozenModel):
     impute_strategy: Annotated[
         types.ImputeStrategy,
         Field(
@@ -55,7 +49,7 @@ class _PreprocessingConfig(_BaseConfig):
     outlier: _OutlierConfig
 
 
-class _FeatureConfig(_BaseConfig):
+class _FeatureConfig(base.FrozenModel):
     max_features: Annotated[
         PositiveInt | None, Field(default=5, description="Maximum number of features to select")
     ]
@@ -78,7 +72,7 @@ class _FeatureConfig(_BaseConfig):
     ]
 
 
-class _ModelConfig(_BaseConfig):
+class _ModelConfig(base.FrozenModel):
     name: Annotated[
         StrictStr,
         Field(
@@ -98,7 +92,7 @@ class _ModelConfig(_BaseConfig):
     ]
 
 
-class Config(_BaseConfig):
+class Config(base.FrozenModel):
     preprocessing: _PreprocessingConfig = Field(default_factory=lambda: _PreprocessingConfig())  # type: ignore
     features: _FeatureConfig = Field(default_factory=lambda: _FeatureConfig())  # type: ignore
     model: _ModelConfig = Field(default_factory=lambda: _ModelConfig())  # type: ignore
