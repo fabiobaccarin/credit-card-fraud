@@ -3,6 +3,7 @@
 from typing import Final, NamedTuple
 
 OPENML_DATASET_ID: Final = 1597
+TARGET: Final = "Class"
 
 
 class MLFlow(NamedTuple):
