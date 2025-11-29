@@ -2,7 +2,9 @@
 
 from abc import abstractmethod
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Annotated, Any, Protocol, runtime_checkable
+
+from pydantic import Field, StrictStr
 
 if TYPE_CHECKING:
     import numpy as np
@@ -15,6 +17,7 @@ if TYPE_CHECKING:
 # ==================================================================================================
 type Matrix = pd.DataFrame | np.ndarray
 type TargetVector = pd.Series[np.float64] | NDArray[np.float64]
+type FeatureList = Annotated[list[StrictStr], Field(default_factory=list, min_length=1)]
 
 
 # ==================================================================================================
