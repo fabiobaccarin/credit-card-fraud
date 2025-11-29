@@ -1,8 +1,25 @@
 """Custom types"""
 
+from abc import abstractmethod
 from enum import StrEnum
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+
+if TYPE_CHECKING:
+    import numpy as np
+    import pandas as pd
+    from numpy.typing import NDArray
 
 
+# ==================================================================================================
+# Basic Types
+# ==================================================================================================
+type Matrix = pd.DataFrame | np.ndarray
+type TargetVector = pd.Series[np.float64] | NDArray[np.float64]
+
+
+# ==================================================================================================
+# Enum Types
+# ==================================================================================================
 class ScalingMethod(StrEnum):
     STANDARD = "standard"
     MINMAX = "minmax"
@@ -29,3 +46,32 @@ class FeatureSelectionMethod(StrEnum):
     SEQUENTIAL_BACKWARD = "sequential_backward"
     RFE = "rfe"
     RFE_CV = "rfe_cv"
+
+
+class ModelType(StrEnum):
+    SKLEARN = "sklearn"
+    XGBOOT = "xgboost"
+    LIGHTGBM = "lightgbm"
+
+
+# ==================================================================================================
+# Protocols
+# ==================================================================================================
+class _BaseClassifier(Protocol):
+    @abstractmethod
+    def fit(self, X: Matrix, y: TargetVector) -> Any: ...
+
+    @abstractmethod
+    def predict(self, X: Matrix) -> np.ndarray: ...
+
+
+@runtime_checkable
+class ProbabilisticClassifier(_BaseClassifier, Protocol):
+    @abstractmethod
+    def predict_proba(self, X: Matrix) -> np.ndarray: ...
+
+
+@runtime_checkable
+class NonProbabilisticClassifier(_BaseClassifier, Protocol):
+    @abstractmethod
+    def decision_function(self, X: Matrix) -> np.ndarray: ...
