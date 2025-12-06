@@ -2,22 +2,20 @@
 
 from abc import abstractmethod
 from enum import StrEnum
-from typing import TYPE_CHECKING, Annotated, Any, Protocol, runtime_checkable
+from typing import Annotated, Any, Protocol, Self, runtime_checkable
 
+import numpy as np
+import pandas as pd
+from numpy.typing import NDArray
 from pydantic import Field, StrictStr
-
-if TYPE_CHECKING:
-    import numpy as np
-    import pandas as pd
-    from numpy.typing import NDArray
-
 
 # ==================================================================================================
 # Basic Types
 # ==================================================================================================
-type Matrix = pd.DataFrame | np.ndarray
-type TargetVector = pd.Series[np.float64] | NDArray[np.float64]
-type FeatureList = Annotated[list[StrictStr], Field(default_factory=list, min_length=1)]
+type NonEmptyStr = Annotated[StrictStr, Field(min_length=1)]
+type Matrix = pd.DataFrame | NDArray
+type TargetVector = pd.Series[np.float64] | np.ndarray[tuple[int], np.dtype[np.float64]]
+type FeatureList = list[NonEmptyStr]
 
 
 # ==================================================================================================
@@ -62,19 +60,25 @@ class ModelType(StrEnum):
 # ==================================================================================================
 class _BaseClassifier(Protocol):
     @abstractmethod
-    def fit(self, X: Matrix, y: TargetVector) -> Any: ...
+    def fit(self, X: Any, y: Any) -> Self: ...
 
     @abstractmethod
-    def predict(self, X: Matrix) -> np.ndarray: ...
+    def predict(self, X: Any) -> Any: ...
 
 
 @runtime_checkable
 class ProbabilisticClassifier(_BaseClassifier, Protocol):
     @abstractmethod
-    def predict_proba(self, X: Matrix) -> np.ndarray: ...
+    def predict_proba(self, X: Any) -> Any: ...
 
 
 @runtime_checkable
 class NonProbabilisticClassifier(_BaseClassifier, Protocol):
     @abstractmethod
-    def decision_function(self, X: Matrix) -> np.ndarray: ...
+    def decision_function(self, X: Any) -> Any: ...
+
+
+# ==================================================================================================
+# Union Types
+# ==================================================================================================
+type Classifier = ProbabilisticClassifier | NonProbabilisticClassifier

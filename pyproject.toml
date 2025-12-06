@@ -40,6 +40,7 @@ pytest-xdist = "^3.0"
 pytest-cov = "^7.0"
 pytest-randomly = "^4.0"
 hypothesis = "^6.0"
+faker = "^38.2"
 
 # Development utilities
 ipykernel = "^7.0"
@@ -77,6 +78,7 @@ markers = [
     "integration: integration tests that require external services",
     "slow: slow running tests",
     "unit: unit tests",
+    "property: property tests that run many times with different inputs"
 ]
 
 filterwarnings = [

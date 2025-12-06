@@ -1,21 +1,28 @@
-"""Pydantic configuration models"""
-
 from typing import Annotated
 
 from pydantic import (
+    BaseModel,
+    ConfigDict,
     Field,
+    NonNegativeInt,
     PositiveFloat,
     PositiveInt,
     StrictBool,
     StrictStr,
 )
 
-from . import base, types
+from . import types
 
-__ALL__: list[str] = ["Config"]
+__all__ = ["FrozenModel", "Config", "FeatureSelection", "Schema"]
 
 
-class _OutlierConfig(base.FrozenModel):
+class FrozenModel(BaseModel):
+    model_config = ConfigDict(
+        frozen=True, validate_assignment=True, arbitrary_types_allowed=True, use_enum_values=True
+    )
+
+
+class _OutlierConfig(FrozenModel):
     remove: Annotated[
         StrictBool, Field(default=False, description="Whether to remove outliers from the dataset")
     ]
@@ -29,7 +36,7 @@ class _OutlierConfig(base.FrozenModel):
     ]
 
 
-class _PreprocessingConfig(base.FrozenModel):
+class _PreprocessingConfig(FrozenModel):
     impute_strategy: Annotated[
         types.ImputeStrategy,
         Field(
@@ -49,7 +56,7 @@ class _PreprocessingConfig(base.FrozenModel):
     outlier: _OutlierConfig
 
 
-class _FeatureConfig(base.FrozenModel):
+class _FeatureConfig(FrozenModel):
     max_features: Annotated[
         PositiveInt | None, Field(default=5, description="Maximum number of features to select")
     ]
@@ -72,7 +79,7 @@ class _FeatureConfig(base.FrozenModel):
     ]
 
 
-class _ModelConfig(base.FrozenModel):
+class _ModelConfig(FrozenModel):
     name: Annotated[
         StrictStr,
         Field(
@@ -87,12 +94,27 @@ class _ModelConfig(base.FrozenModel):
     ]
 
     random_state: Annotated[
-        PositiveInt,
+        NonNegativeInt,
         Field(default=0, description="Random state to seed randomness and ensure reproducibility"),
     ]
 
 
-class Config(base.FrozenModel):
+class Config(FrozenModel):
     preprocessing: _PreprocessingConfig = Field(default_factory=lambda: _PreprocessingConfig())  # type: ignore
     features: _FeatureConfig = Field(default_factory=lambda: _FeatureConfig())  # type: ignore
     model: _ModelConfig = Field(default_factory=lambda: _ModelConfig())  # type: ignore
+
+
+class FeatureSelection(FrozenModel):
+    selected_features: Annotated[
+        types.FeatureList,
+        Field(default_factory=lambda: list(), description="List of selected features names"),
+    ]
+
+    dropped_features: Annotated[
+        types.FeatureList,
+        Field(default_factory=lambda: list(), description="List of dropped features names"),
+    ]
+
+
+type Schema = Config | FeatureSelection
