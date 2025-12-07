@@ -8,10 +8,9 @@ from pydantic import (
     PositiveFloat,
     PositiveInt,
     StrictBool,
-    StrictStr,
 )
 
-from . import types
+from . import types as t
 
 __all__ = ["FrozenModel", "Config", "FeatureSelection", "Schema"]
 
@@ -28,9 +27,9 @@ class _OutlierConfig(FrozenModel):
     ]
 
     method: Annotated[
-        types.OutlierFindMethod,
+        t.OutlierFindMethod,
         Field(
-            default=types.OutlierFindMethod.IQR,
+            default=t.OutlierFindMethod.IQR,
             description="Method used to find outliers for removal. Only applied if removed is True",
         ),
     ]
@@ -38,22 +37,22 @@ class _OutlierConfig(FrozenModel):
 
 class _PreprocessingConfig(FrozenModel):
     impute_strategy: Annotated[
-        types.ImputeStrategy,
+        t.ImputeStrategy,
         Field(
-            default=types.ImputeStrategy.MEAN,
+            default=t.ImputeStrategy.MEAN,
             description="Strategy to use for imputing missing values",
         ),
     ]
 
     scaling_method: Annotated[
-        types.ScalingMethod,
+        t.ScalingMethod,
         Field(
-            default=types.ScalingMethod.STANDARD,
+            default=t.ScalingMethod.STANDARD,
             description="Scaling method to use for feature scaling",
         ),
     ]
 
-    outlier: _OutlierConfig
+    outlier: Annotated[_OutlierConfig, Field(default_factory=lambda: _OutlierConfig(**{}))]
 
 
 class _FeatureConfig(FrozenModel):
@@ -62,9 +61,9 @@ class _FeatureConfig(FrozenModel):
     ]
 
     selection_method: Annotated[
-        types.FeatureSelectionMethod,
+        t.FeatureSelectionMethod,
         Field(
-            default=types.FeatureSelectionMethod.F_CLASSIF,
+            default=t.FeatureSelectionMethod.F_CLASSIF,
             description="Which method to use for feature selection",
         ),
     ]
@@ -81,16 +80,15 @@ class _FeatureConfig(FrozenModel):
 
 class _ModelConfig(FrozenModel):
     name: Annotated[
-        StrictStr,
+        t.NonEmptyStr,
         Field(
             default=...,
-            min_length=1,
             description="Model name used for reference (used as run name for MLFlow logging)",
         ),
     ]
 
     model_type: Annotated[
-        types.ModelType, Field(default=types.ModelType.SKLEARN, description="Model type to use")
+        t.ModelType, Field(default=t.ModelType.SKLEARN, description="Model type to use")
     ]
 
     random_state: Annotated[
@@ -100,19 +98,21 @@ class _ModelConfig(FrozenModel):
 
 
 class Config(FrozenModel):
-    preprocessing: _PreprocessingConfig = Field(default_factory=lambda: _PreprocessingConfig())  # type: ignore
-    features: _FeatureConfig = Field(default_factory=lambda: _FeatureConfig())  # type: ignore
-    model: _ModelConfig = Field(default_factory=lambda: _ModelConfig())  # type: ignore
+    preprocessing: _PreprocessingConfig = Field(
+        default_factory=lambda: _PreprocessingConfig(**dict())
+    )
+    features: _FeatureConfig = Field(default_factory=lambda: _FeatureConfig(**dict()))
+    model: _ModelConfig = Field(default_factory=lambda: _ModelConfig(**dict()))
 
 
 class FeatureSelection(FrozenModel):
     selected_features: Annotated[
-        types.FeatureList,
+        t.FeatureList,
         Field(default_factory=lambda: list(), description="List of selected features names"),
     ]
 
     dropped_features: Annotated[
-        types.FeatureList,
+        t.FeatureList,
         Field(default_factory=lambda: list(), description="List of dropped features names"),
     ]
 

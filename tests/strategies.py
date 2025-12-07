@@ -1,10 +1,12 @@
 import string
-from typing import Any, Callable, Final
+from typing import Final
 
 from hypothesis import HealthCheck, settings
 from hypothesis import strategies as st
 
-from credit_card_fraud import constants, types
+from credit_card_fraud import constants as c
+from credit_card_fraud import schemas as sch
+from credit_card_fraud import types as t
 
 ASCII_LOWERCASE_WITH_DIGITS: Final = string.ascii_lowercase + string.digits
 
@@ -16,34 +18,47 @@ settings.register_profile(
 )
 
 
-@st.composite
-def config_strategy(draw: Callable) -> dict[str, Any]:
+def full_config_strategy() -> st.SearchStrategy[sch.Config]:
     # Preprocessing
-    impute_strategy = draw(st.sampled_from(list(types.ImputeStrategy)))
-    scaling_method = draw(st.sampled_from(list(types.ScalingMethod)))
-    outlier_remove = draw(st.booleans())
-    outlier_method = draw(st.sampled_from(list(types.OutlierFindMethod)))
+    outlier_strategy = st.builds(
+        sch._OutlierConfig, remove=st.booleans(), method=st.sampled_from(list(t.OutlierFindMethod))
+    )
+    preprocessing_strategy = st.builds(
+        sch._PreprocessingConfig,
+        impute_strategy=st.sampled_from(list(t.ImputeStrategy)),
+        scaling_method=st.sampled_from(list(t.ScalingMethod)),
+        outlier=outlier_strategy,
+    )
 
     # Features
-    max_features = draw(st.integers(min_value=1, max_value=20))
-    selection_method = draw(st.sampled_from(list(types.FeatureSelectionMethod)))
-    correlation_threshold = draw(st.floats(min_value=0.7, max_value=0.9))
+    features_strategy = st.builds(
+        sch._FeatureConfig,
+        max_features=st.integers(min_value=1, max_value=20),
+        selection_method=st.sampled_from(list(t.FeatureSelectionMethod)),
+        correlation_threshold=st.floats(min_value=0.7, max_value=0.9),
+    )
 
     # Model
-    name = draw(st.text(alphabet=ASCII_LOWERCASE_WITH_DIGITS, min_size=5, max_size=20))
-    model_type = draw(st.sampled_from(list(types.ModelType)))
-    random_state = draw(st.integers(min_value=0, max_value=constants.MAX_RANDOM_STATE))
+    model_strategy = st.builds(
+        sch._ModelConfig,
+        name=st.text(alphabet=ASCII_LOWERCASE_WITH_DIGITS, min_size=5, max_size=20),
+        model_type=st.sampled_from(list(t.ModelType)),
+        random_state=st.integers(min_value=0, max_value=c.MAX_RANDOM_STATE),
+    )
 
-    return dict(
-        preprocessing=dict(
-            impute_strategy=impute_strategy,
-            scaling_method=scaling_method,
-            outlier=dict(remove=outlier_remove, method=outlier_method),
+    return st.builds(
+        sch.Config,
+        preprocessing=preprocessing_strategy,
+        features=features_strategy,
+        model=model_strategy,
+    )
+
+
+def required_config_strategy() -> st.SearchStrategy[sch.Config]:
+    return st.builds(
+        sch.Config,
+        model=st.builds(
+            sch._ModelConfig,
+            name=st.text(alphabet=ASCII_LOWERCASE_WITH_DIGITS, min_size=5, max_size=20),
         ),
-        features=dict(
-            max_features=max_features,
-            selection_method=selection_method,
-            correlation_threshold=correlation_threshold,
-        ),
-        model=dict(name=name, model_type=model_type, random_state=random_state),
     )
